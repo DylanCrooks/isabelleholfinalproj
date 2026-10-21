@@ -1,0 +1,1164 @@
+theory IMO2013pfive2
+  imports Complex_Main HOL.Limits
+begin
+
+lemma positive_rational_signs:
+  fixes x :: rat
+  assumes "x = Fract p q"
+  shows "x > 0 \<longleftrightarrow> (p > 0 \<and> q > 0) \<or> (p < 0 \<and> q < 0)"
+proof -
+  have "x > 0 \<longleftrightarrow> (Fract p q > 0)" using assms by simp
+  also have "\<dots> \<longleftrightarrow> (p * q > 0)"
+    using less_rat_def positive_rat by auto 
+  also have "\<dots> \<longleftrightarrow> (p > 0 \<and> q > 0) \<or> (p < 0 \<and> q < 0)"
+    by (simp add: zero_less_mult_iff)
+  finally show ?thesis .
+qed
+
+
+lemma fx_lt_x:
+  fixes f:: "rat \<Rightarrow>real"
+  fixes x y a :: "rat"
+  fixes m n:: "int"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+   "\<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)"  (*claim1 *)
+  "\<And>x. 1 < x  \<Longrightarrow> real_of_rat x > f x"
+shows  "False"
+proof -
+  have cont_hyps:   "\<And>x. 1 < x  \<Longrightarrow> real_of_rat x > f x" using assms(5) by auto
+  then have "\<forall>x::rat. 1 < x \<longrightarrow> real_of_rat x > f x" by simp
+  have "(\<exists>x1::rat. 1 < x1 \<longrightarrow> real_of_rat x1 \<le> (f x1)  ) \<longrightarrow>  \<not>(\<forall>x::rat. 1 < x \<longrightarrow> real_of_rat x > f x)"
+    using assms(3) by fastforce 
+  have "(\<exists>x1::rat. 1 < x1 \<longrightarrow> real_of_rat x1 \<le> (f x1)  )" using assms(3)
+    by blast
+
+  have "\<not>(\<forall>x::rat. 1 < x \<longrightarrow> real_of_rat x > f x)"
+    using \<open>(\<exists>x1. 1 < x1 \<longrightarrow> real_of_rat x1 \<le> f x1) \<longrightarrow> \<not> (\<forall>x>1. f x < real_of_rat x)\<close> by blast 
+  
+  
+  show ?thesis
+    using \<open>\<forall>x>1. f x < real_of_rat x\<close> \<open>\<not> (\<forall>x>1. f x < real_of_rat x)\<close> by auto qed
+
+lemma ftest:
+  fixes f:: "rat \<Rightarrow>real"
+  fixes x y a :: "rat"
+  fixes m n:: "int"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+   "\<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)"  (*claim1 *)
+shows "(x = Fract m n) \<and> (m > 0) \<and> (n>0) \<Longrightarrow> f (x) > 0 "
+proof -
+  assume passm: "(x = Fract m n) \<and> (m > 0) \<and> (n>0)"
+  then have mn_gt_0: "(m > 0) \<and> (n>0)" by auto
+  have xmn: "x = (Fract m n)" using passm by auto
+    have m_gt_0: "m>0" using mn_gt_0 by auto
+    have n_gt_0: "n>0" using mn_gt_0 by auto
+    have x_gt_0: "x > 0" using passm by (simp add: zero_less_Fract_iff) 
+    have "(f x) > 0" proof -
+      have "(\<not>(f x) > 0) \<Longrightarrow> False" proof -
+        assume "\<not>( (f x) > 0)"
+        then have assms_fk_lte_0: "(f x) \<le> 0" by auto 
+        
+        define ma na::rat where ma_def: "ma = (rat_of_int m)" and na_def: "na = (rat_of_int n)"         
+       then have c123: "(ma > na) \<or> (ma < na) \<or> (ma = na)"
+         by linarith
+
+
+
+
+
+        have c1: "(ma > na) \<Longrightarrow> (\<not>(f x) > 0 \<Longrightarrow> False)"
+        proof - 
+          have k_eq_mn: "x = ma/na" using ma_def na_def Fract_of_int_quotient
+            by (simp add: \<open>x = Fract m n \<and> 0 < m \<and> 0 < n\<close>) 
+          have na_gt_0: "na > 0" using n_gt_0 na_def by simp
+          have ma_gt_0: "ma > 0" using m_gt_0 ma_def by simp 
+          have fma_gt_0: "(f ma) > 0" using m_gt_0 assms(4)[of m]
+            by (simp add: ma_def)
+          have fna_gt_0: "(f na) > 0" using n_gt_0 assms(4)[of n]
+            by (simp add: na_def)
+          have "( (f na)* (f x) \<ge> (f ma))" 
+             using assms(1)[of ma na] mn_gt_0 na_gt_0 ma_gt_0 k_eq_mn
+             by (metis assms(1) x_gt_0 less_imp_neq mult.commute nonzero_eq_divide_eq)
+          then have "(f (na)) * (f (x)) \<le> 0" using assms_fk_lte_0 fma_gt_0 fna_gt_0
+            by (simp add: mult_le_0_iff)
+          then have "(f(ma)) \<le> 0"
+            using assms(1)[of na k] k_eq_mn xmn na_def ma_def  \<open>f ma \<le> f na * f x\<close> by linarith
+          then have "False"
+            using fma_gt_0 by auto
+          then show ?thesis by simp qed
+
+        have c2:"(ma < na) \<Longrightarrow> (\<not>(f x) > 0 \<Longrightarrow> False)" proof - 
+          have x_eq_mn: "x = ma/na"
+            by (simp add: Fract_of_int_quotient xmn ma_def na_def) 
+          have na_gt_0: "na > 0" using n_gt_0 na_def by simp
+          have ma_gt_0: "ma > 0" using m_gt_0 ma_def by simp 
+          have fma_gt_0: "(f ma) > 0" using m_gt_0 assms(4)[of m]
+            by (simp add: ma_def)
+          have fna_gt_0: "(f na) > 0" using n_gt_0 assms(4)[of n]
+            by (simp add: na_def)
+          have "( (f na)* (f x) \<ge> (f ma))" 
+             using assms(1)[of ma na] mn_gt_0 na_gt_0 ma_gt_0 x_eq_mn
+             by (metis assms(1) x_gt_0 less_imp_neq mult.commute nonzero_eq_divide_eq)
+          then have "(f (na)) * (f (x)) \<le> 0" using assms_fk_lte_0 fma_gt_0 fna_gt_0
+            by (simp add: mult_le_0_iff)
+          then have "(f(ma)) \<le> 0"
+            using assms(1)[of na x] x_eq_mn xmn na_def ma_def  \<open>f ma \<le> f na * f x\<close> by linarith
+          then have "False"
+            using fma_gt_0 by auto
+          then show ?thesis by simp qed
+        have c3: "(ma = na) \<Longrightarrow> (\<not>(f x) > 0 \<Longrightarrow> False)"
+        proof - 
+          assume "ma = na"
+          then have "x=1"
+            using Fract_of_int_quotient xmn ma_def mn_gt_0 na_def by auto
+          then  show ?thesis using assms(4)
+            by (smt (verit) \<open>\<not> 0 < f x\<close> of_int_1) qed 
+        then have "False" using c1 c2 c3 c123 using assms_fk_lte_0 by auto
+        then show ?thesis  by auto qed
+      then show ?thesis by auto qed
+    then show ?thesis by auto qed 
+
+
+
+lemma mgg:
+  fixes f:: "rat \<Rightarrow>real"
+  fixes x y a :: "rat"
+  fixes m n:: "int"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+   "\<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)"  (*claim1 *)
+ " \<And>k. 0 < k \<Longrightarrow> 0 < f k" (* krat2_global *)
+ shows  "\<And>x n. 0 < x \<Longrightarrow> 0 < n \<Longrightarrow> f (x ^ n) \<le> f x ^ n"
+proof -
+  obtain a::"rat" where a_prop: "a > 1 \<and> f a = (real_of_rat) a" using assms(3) by auto
+  have claim1:  " \<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)" using assms(4) by simp
+  have krat2a:  " \<And>k. 0 < k \<Longrightarrow> 0 < f k" using assms(5) by simp
+          fix x::"rat"
+          fix n::"nat"
+          assume x_gt_0: "x>0"
+          assume n_gt_0: "n>0" 
+          have f1_gt_1:  "f 1 \<ge> 1" using a_prop  by (metis assms(1) comm_monoid_mult_class.mult_1 dual_order.strict_trans less_numeral_extra(1) mult_le_cancel_right1 zero_less_of_rat_iff)
+
+
+          show " f (x ^ n) \<le> f x ^ n" using n_gt_0
+          proof -
+            have n_gte_1:"n>1 \<or> n=1" using n_gt_0 by fastforce 
+            have n_eq_1_case:"n=1 \<Longrightarrow>  f (x ^ n) \<le> f x ^ n"
+            proof -
+              assume n_eq_1: "n=1"
+              have  fx1:"(f (x ^ n)) = (f x)" using n_eq_1 by auto
+              then have fx2: "((f x) ^ n) = (f x)" using n_eq_1 by auto
+              then show ?thesis using fx1 fx2 by simp qed
+            have n_gt_1_case: "n>1 \<Longrightarrow>  f (x ^ n) \<le> f x ^ n" 
+            
+          proof (induct n)
+            case 0
+            then show ?case  by simp 
+          next
+            case (Suc n)
+            have "(x ^ (Suc n)) = x * (x ^ n)" by simp
+            then have h2: "f (x ^ (Suc n)) \<le> (f x) * (f (x ^ n))" using assms(1) by (simp add: x_gt_0)
+            have h1:  "(f x)^ (Suc n) = (f x) * ((f x)^n)" by simp
+            have c10: "n > 0 \<or> n = 0" using n_gt_0 by auto
+            
+            then show ?case proof -
+
+              have case1: "n > 0 \<Longrightarrow> f (x ^ Suc n) \<le> f x ^ Suc n"
+              proof -
+                assume n_gt_0: "n > 0"
+                have fx_gt_0: "f x > 0"  using krat2a[of x] assms(1) assms(2) assms(3) claim1 x_gt_0 by blast 
+                have "(f x) * (f (x ^ n)) \<le> (f x) * ((f x)^n)" using Suc.hyps n_gt_0 x_gt_0 fx_gt_0
+                  using Suc.prems less_Suc_eq_le by force 
+
+                then show ?thesis
+                  using h2 by auto  qed
+              then show ?thesis using case1  c10 by auto  qed qed
+          then show ?thesis using n_eq_1_case n_gt_1_case n_gte_1 by auto qed qed
+
+lemma krat2_global:
+  fixes f:: "rat \<Rightarrow>real"
+  fixes x y a :: "rat"
+  fixes m n:: "int"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+   "\<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)"  (*claim1 *)
+ shows  " \<And>k. 0 < k \<Longrightarrow> 0 < f k"
+proof -
+  have claim1:  "\<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)" using assms(4) by simp
+  fix k::"rat"
+  assume k_gt_0: "k>0"
+
+  obtain p2 q2::int where kp2q2: "k = Fract p2 q2"
+        proof -
+          assume a1: "\<And>p2 q2. k = Fract p2 q2 \<Longrightarrow> thesis"
+          obtain ii :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iia :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iib :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iic :: "(rat \<Rightarrow> bool) \<Rightarrow> int" where
+            "\<forall>p r. p r \<or> \<not> p (Fract (ii p) (iia p)) \<and> 0 < iia p"
+            by (metis Rat_induct_pos)
+          then show ?thesis
+            using a1 by auto
+        qed 
+
+
+   have gtlt0:  "(p2 > 0 \<and> q2 > 0) \<or> ( p2 < 0 \<and> q2 < 0)" using kp2q2 k_gt_0
+     by (simp add: positive_rational_signs)
+
+      have fkp2q2: "(p2>0 \<and> q2>0) \<Longrightarrow> ( (f k) > 0)"
+      proof -
+      
+        assume p2q2_gt_0: "(p2>0 \<and> q2>0)"
+        show ?thesis using ftest[of f k p2 q2]
+          by (simp add: assms(1) assms(2) assms(3) claim1 kp2q2 p2q2_gt_0) qed
+
+      have fkp3q3: "(p2<0 \<and> q2<0) \<Longrightarrow> ( (f k) > 0)"proof - 
+        assume p2q2_lt_0: "(p2<0 \<and> q2<0)"
+        then have "(-p2)>0 \<and> (-q2)>0" by simp 
+        define p2i q2i::int where "p2i = (-p2)" and "q2i = (-q2)"
+        have "Fract p2i q2i = Fract p2 q2" by (simp add: p2i_def q2i_def) 
+        then have "k = (Fract p2i q2i)" by (simp add: kp2q2) 
+        then have "p2i > 0 \<and> q2i > 0"  using \<open>0 < - p2 \<and> 0 < - q2\<close> p2i_def q2i_def by auto 
+        then have "(f k) > 0" using ftest[of f k p2i q2i] assms(1) assms(2)
+            assms(3) claim1 kp2q2 p2q2_lt_0 \<open>k = Fract p2i q2i\<close> by blast
+        then show ?thesis by auto qed 
+   
+   
+       show "0 < (f k)" using fkp3q3 fkp2q2
+         using gtlt0 by blast 
+     qed
+
+
+
+
+definition expr_n :: "nat \<Rightarrow> real \<Rightarrow> real" where
+  "expr_n n x = root n ((x^n - 1))"
+
+
+lemma sublinear:
+  fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+ 
+shows "\<And>x n. 0 < x \<Longrightarrow> 0 < n \<Longrightarrow> real_of_int n * f x \<le> f (rat_of_int n * x)"
+proof -
+  fix x::"rat"
+  assume x_gt_0: "x>0"
+      fix n::"int"
+      assume n_gt_0: "0 < n"
+      show "real_of_int n * f x \<le> f (rat_of_int n * x)" proof - 
+            
+        have subthing: "\<And>x::rat. x > 0 \<Longrightarrow> f((rat_of_int n) * x) \<ge> (real_of_int n)  * (f(x))"
+        proof -
+          fix x::"rat"
+          assume x_gt_0: "x>0"
+          show  "f((rat_of_int n) * x) \<ge> (real_of_int n)  * (f(x))"  using n_gt_0 x_gt_0
+          proof (induct n arbitrary:x)
+            case base
+            then show ?case by auto
+          next
+            case (step i)
+            have h0: "f (rat_of_int (i + 1) * x) = f (((rat_of_int i)*x) + x)"
+              by (simp add: ring_class.ring_distribs(2))
+              
+            have h1: "(rat_of_int i) * x > 0" using step.hyps step.prems by auto
+            then have h2: "(f ( (rat_of_int i) * x)) + (f x)  \<le> f (((rat_of_int i) * x) + x)"
+            using assms(2)[of "(rat_of_int i) * x" x] step by auto 
+            then have h3: " real_of_int (i + 1) * f x  = ((real_of_int i) * (f x)) +  f x"
+            by (simp add: distrib_left mult.commute) 
+          then have  "(real_of_int i) * (f x) \<le> f((rat_of_int i)*x) " using step.hyps(2)[of x] step.prems(1) h1 h2 h3
+            by simp
+          then have h5: "((real_of_int i) * (f x)) + (f x) \<le>  f((rat_of_int i)*x) + (f x)" by auto
+            then show ?case unfolding h3 h0  using h1 h2 h3 h5 by auto
+          qed
+        qed
+        show ?thesis
+          by (simp add: subthing x_gt_0)  qed qed
+
+lemma claim1_global:
+  fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+shows " \<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)"
+proof -
+  obtain a::rat where a_prop: "a > 1 \<and> f a = (real_of_rat) a " using assms(3) by auto
+      fix n::"int"
+      assume n_gt_0: "0 < n"
+      show " f (rat_of_int n) \<ge> real_of_int n" proof - 
+            
+        have subthing: "\<And>x::rat. x > 0 \<Longrightarrow> f((rat_of_int n) * x) \<ge> (real_of_int n)  * (f(x))"
+        proof -
+          fix x::"rat"
+          assume x_gt_0: "x>0"
+          show  "f((rat_of_int n) * x) \<ge> (real_of_int n)  * (f(x))"  using n_gt_0 x_gt_0
+          proof (induct n arbitrary:x)
+            case base
+            then show ?case by auto
+          next
+            case (step i)
+            have h0: "f (rat_of_int (i + 1) * x) = f (((rat_of_int i)*x) + x)"
+              by (simp add: ring_class.ring_distribs(2))
+              
+            have h1: "(rat_of_int i) * x > 0" using step.hyps step.prems by auto
+            then have h2: "(f ( (rat_of_int i) * x)) + (f x)  \<le> f (((rat_of_int i) * x) + x)"
+            using assms(2)[of "(rat_of_int i) * x" x] step by auto 
+            then have h3: " real_of_int (i + 1) * f x  = ((real_of_int i) * (f x)) +  f x"
+            by (simp add: distrib_left mult.commute) 
+          then have  "(real_of_int i) * (f x) \<le> f((rat_of_int i)*x) " using step.hyps(2)[of x] step.prems(1) h1 h2 h3
+            by simp
+          then have h5: "((real_of_int i) * (f x)) + (f x) \<le>  f((rat_of_int i)*x) + (f x)" by auto
+            then show ?case unfolding h3 h0  using h1 h2 h3 h5 by auto
+          qed
+        qed
+          
+
+
+
+   
+      then have " f (a * 1) = real_of_rat a" using a_prop  assms(1)[of a 1] using subthing by auto
+      then have "real_of_rat a * (f 1) \<ge> real_of_rat a" using a_prop assms(1)[of a 1] by simp
+      then have f1_case:  "f 1 \<ge> 1" using a_prop mult_cancel_left1 by auto 
+      then show ?thesis  using subthing[of 1]
+      by (smt (verit) less_numeral_extra(1) mult_cancel_left1 mult_le_cancel_left1 n_gt_0 of_int_nonneg)
+      qed
+      qed
+
+lemma f_strict1_global: 
+  fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+ 
+
+shows " \<And>i j. 0 < i \<Longrightarrow> 0 < j \<Longrightarrow> j < i \<Longrightarrow> f j < f i"
+ proof -
+   fix i j::"rat"
+
+   assume i_gt_0: "i>0"
+   assume i_gt_j: "i>j"
+   assume j_gt_0: "j>0"
+
+ 
+  have krat2: " \<And>k. 0 < k \<Longrightarrow> 0 < f k" proof -
+  fix k::"rat"
+  assume k_gt_0: "k>0"
+
+  obtain p2 q2::int where kp2q2: "k = Fract p2 q2"
+        proof -
+          assume a1: "\<And>p2 q2. k = Fract p2 q2 \<Longrightarrow> thesis"
+          obtain ii :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iia :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iib :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iic :: "(rat \<Rightarrow> bool) \<Rightarrow> int" where
+            "\<forall>p r. p r \<or> \<not> p (Fract (ii p) (iia p)) \<and> 0 < iia p"
+            by (metis Rat_induct_pos)
+          then show ?thesis
+            using a1 by auto
+        qed 
+
+
+   have gtlt0:  "(p2 > 0 \<and> q2 > 0) \<or> ( p2 < 0 \<and> q2 < 0)" using kp2q2 k_gt_0
+     by (simp add: positive_rational_signs)
+
+      have fkp2q2: "(p2>0 \<and> q2>0) \<Longrightarrow> ( (f k) > 0)"
+      proof -
+      
+        assume p2q2_gt_0: "(p2>0 \<and> q2>0)"
+        show ?thesis using ftest[of f k p2 q2]
+          by (simp add: assms(1) assms(2) assms(3) claim1_global kp2q2 p2q2_gt_0) qed
+
+      have fkp3q3: "(p2<0 \<and> q2<0) \<Longrightarrow> ( (f k) > 0)"proof - 
+        assume p2q2_lt_0: "(p2<0 \<and> q2<0)"
+        then have "(-p2)>0 \<and> (-q2)>0" by simp 
+        define p2i q2i::int where "p2i = (-p2)" and "q2i = (-q2)"
+        have "Fract p2i q2i = Fract p2 q2" by (simp add: p2i_def q2i_def) 
+        then have "k = (Fract p2i q2i)" by (simp add: kp2q2) 
+        then have "p2i > 0 \<and> q2i > 0"  using \<open>0 < - p2 \<and> 0 < - q2\<close> p2i_def q2i_def by auto 
+        then have "(f k) > 0" using ftest[of f k p2i q2i] assms(1) assms(2)
+            assms(3) claim1_global kp2q2 p2q2_lt_0 \<open>k = Fract p2i q2i\<close> by blast
+        then show ?thesis by auto qed 
+   
+   
+       show "0 < (f k)" using fkp3q3 fkp2q2
+         using gtlt0 by blast 
+     qed
+
+     have krat: "\<forall>k::rat. 0 < k \<longrightarrow> 0 < f k" proof clarsimp show " \<And>k. 0 < k \<Longrightarrow> 0 < f k " using krat2 by simp qed
+
+     define r::rat where "r = i - j"
+     have r_gt_0: "r > 0" using i_gt_j r_def by simp
+     have fi_gt_0: "(f i) > 0" using krat2[of i] i_gt_0 by simp
+     have fr_gt_0: "(f r) > 0" using krat2[of r] r_gt_0 by simp
+          have "f (j + r) \<ge> f (j) + f (r)" using assms(2)[of j r] i_gt_0 j_gt_0 r_def r_gt_0 by simp
+          have "f (j) + f (r) > min (f j) (f r)" using krat2[of i] krat2[of j] i_gt_0 j_gt_0 by auto
+          have "(f i) = (f (j+r))" using r_def by simp 
+          then have "(f i) \<ge> (f j) + (f r)" using assms(2)[of j r]  by (simp add: j_gt_0 r_gt_0) 
+          then have "(f j) + (f r) > (f j)"  using fr_gt_0 by linarith 
+          then have tesis:"(f i) > (f j)"
+            using \<open>f j + f r \<le> f i\<close> by linarith 
+          show "(f i) > (f j)" using tesis by simp qed
+
+
+
+lemma floor_pzero_global:
+ fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+ 
+shows "\<And>x n. 1 < x \<Longrightarrow> 0 < n \<Longrightarrow> (real_of_rat( (x^n) - 1)) < f x ^ n" 
+ proof - 
+   fix x::"rat"
+   assume x_gt_1: "x>1"
+   fix n::"nat"
+   assume n_gt_0: "n>0"
+   have "(x^n) > 1" using x_gt_1 n_gt_0 by simp
+   have h1: "\<lfloor>(x^n)\<rfloor> \<le> (f(rat_of_int\<lfloor>x^n\<rfloor>))" using claim1_global
+     using Fract_of_int_eq One_rat_def \<open>1 < x ^ n\<close> le_floor_iff nless_le
+     by (simp add: assms(1) assms(2) assms(3)) 
+   have h2: " (f(rat_of_int\<lfloor>x^n\<rfloor>)) \<le>  (f(x^n)) " using  f_strict1_global floor_less_one of_int_0_less_iff of_int_floor_le order_less_trans
+ \<open>1 < x ^ n\<close> antisym_conv2
+     by (smt (verit) assms(1) assms(2) assms(3) order.asym) 
+   have temp: "(\<And>x y. 0 < x \<and> 0 < y \<Longrightarrow> f (x * y) \<le> f x * f y) "  using assms(1) by blast 
+   have temp1: "(\<And>x y. 0 < x \<and> 0 < y \<Longrightarrow> f x + f y \<le> f (x + y)) "  using assms(2) by blast 
+   have temp2: " \<exists>a>1. f a = real_of_rat a" using assms(3) by blast
+    
+   have h3: "(f (x^n)) \<le>  ((f x)^n) "
+     using x_gt_1 n_gt_0 assms  krat2_global[of f x]  mgg[of f x n] 
+     using claim1_global krat2_global of_int_less_1_iff order.strict_trans order_refl by auto
+    
+   have "(rat_of_int \<lfloor>x ^ n\<rfloor> ) > (x^n) - 1"
+     by (simp add: floor_less_cancel) 
+   show " (real_of_rat( (x^n) - 1)) < f x ^ n"  using h1 h2 h3
+     by (smt (verit, del_insts) \<open>x ^ n - 1 < rat_of_int \<lfloor>x ^ n\<rfloor>\<close> of_rat_less of_rat_of_int_eq)
+ qed 
+
+
+lemma B: "filterlim (\<lambda>x::real. 1 / x) (nhds 0) at_top"
+proof
+  fix \<epsilon> :: real assume "\<epsilon> > 0"
+  have "\<forall>\<^sub>F x in at_top. x > 1 / \<epsilon>"
+    by (rule eventually_gt_at_top)
+
+  thus "\<forall>\<^sub>F (x::real) in at_top. dist (1 / x) 0 < \<epsilon>"
+    using eventually_gt_at_top[of 0]
+    by eventually_elim (use \<open>\<epsilon> > 0\<close> in \<open>auto simp: field_simps\<close>)
+qed
+
+
+lemma C:
+  fixes x::rat
+  assumes "x>0"
+  shows  "filterlim (\<lambda>x::rat. 1/x) (nhds 0) at_top"
+  sorry
+
+
+
+
+lemma bigLim:
+  fixes n::nat
+  assumes "n>0"
+
+shows  "filterlim (\<lambda>x::real. root n (1 - (1 / x^n))) (nhds 1) at_top"
+proof -
+  let ?f0 =  "\<lambda>x::real. root n ( 1 - 1 / (x ^ n))"
+  let ?f1 = "\<lambda>x::real. 1 - 1 / (x ^ n)"
+  let ?f2 = "\<lambda>x::real.  1 / (x ^ n)"
+  let ?f3 =  "\<lambda>x::real.  1 / x"
+  have  "filterlim (\<lambda>x::real. (1 - (1 / x^n))) (nhds 1) at_top "
+  proof -
+      have h1: " (\<lambda>x::real. (1 / x^n)) = ((\<lambda>x. power_int (?f3 x) n))"  
+        by (simp add: power_one_over)  
+      have h2: "filterlim ?f3 (nhds 0) at_top" using B  by presburger
+      then have h3: "((\<lambda>x. power_int (?f3 x) n) \<longlongrightarrow> power_int 0 n) at_top" 
+        using of_nat_0_le_iff tendsto_power_int' by blast
+      then have h4: "((\<lambda>x. (?f3 x)^ n) \<longlongrightarrow>  0^ n) at_top" by simp  
+      then have h4a: "((\<lambda>x. (?f3 x)^ n) \<longlongrightarrow>  0) at_top" using assms(1)
+        by (simp add: zero_power)
+      then have h5: "?f2 =  ((\<lambda>x. (?f3 x)^ n))"
+        by (simp add: power_one_over)
+      then have h6: "filterlim ?f2 (nhds 0) at_top"
+        by (simp add: h4a) 
+      have h7: "filterlim (\<lambda>x::real. (1 / x^n)) (nhds 0) at_top " using h1 h2 h3 h4 h4a h5 h6 by auto
+      then have "filterlim ?f2 (nhds 0) at_top" by simp
+      have "?f1 =  (\<lambda>x. 1 - (?f2 x))" by simp
+      then have "filterlim ?f1 (nhds 1) at_top" 
+        using assms(1) tendsto_const tendsto_diff h7  by fastforce 
+      then show ?thesis by simp  qed
+      (*why was this so hard *)
+      have "?f0 =  (\<lambda>x. root n (?f1 x))" by simp  
+      then have  "filterlim ?f0 (nhds 1) at_top" using tendsto_real_root[of ?f0 1 at_top n ] real_root_one
+        by (metis \<open>((\<lambda>x. 1 - 1 / x ^ n) \<longlongrightarrow> 1) at_top\<close> assms(1) tendsto_real_root)
+ 
+    
+      thus "((\<lambda>x. root n (1 - 1 / x ^ n)) \<longlongrightarrow> 1) at_top" by simp  qed 
+
+
+lemma bigLimN_not_X:
+  fixes x::"rat"
+  assumes "x>1"
+
+shows  "filterlim (\<lambda>n::nat. root n (1 - (1 / ((real_of_rat x)^n)))) (nhds 1) at_top"
+proof -
+  let ?f0 =  "\<lambda>n::nat. root n ( 1 - 1 / ((real_of_rat x) ^ n))"
+  let ?f1 = "\<lambda>n::nat. 1 - 1 / (x ^ n)"
+  let ?f2 = "\<lambda>n::nat.  1 / (x ^ n)"
+  let ?f3 =  "\<lambda>x::rat.  1 / (x)"
+ have  "filterlim (\<lambda>n::nat. (1 - (1 / x^n))) (nhds 1) at_top "
+ proof -
+   have h0: " (\<lambda>n::nat. (1 / x^n)) = ((\<lambda>n.  ((1^n)/(x^n))))"  by simp
+   then have h0a: "(\<lambda>n.  ((1^n)/(x^n))) =  ((\<lambda>n::nat.  (?f3 x) ^ n))  "
+     by (simp add: power_one_over)
+  then have h1: " (\<lambda>n::nat. (1 / x^n)) = ((\<lambda>n::nat.  (?f3 x) ^ n))"  
+    by (simp add: power_one_over)  
+(*following could maybe be proved by saying that 1/x^n is basically 1/x because x^n here will 
+alyways be rational *)
+     have h3: "((\<lambda>n. power_int (?f3 x) n) \<longlongrightarrow> power_int 0 n) at_top" 
+        using of_nat_0_le_iff tendsto_power_int' filterlim_tendsto_pos_mult_at_top  by blast
+      have h2: "filterlim ?f2 (nhds 0) at_top"  sorry
+      have "?f1 =  (\<lambda>x. 1 - (?f2 x))" by simp
+      then have "filterlim ?f1 (nhds 1) at_top" 
+        using assms(1) tendsto_const tendsto_diff   by fastforce 
+      then show ?thesis by simp  qed
+
+
+        show ?thesis sorry qed
+
+   show ?thesis sorry qed
+
+
+lemma helper_2:
+fixes x::"rat"
+fixes n::"nat"
+assumes "x>1" "n\<ge>1"
+shows "(x^n = x powi n) \<and> ( (real_of_rat x)^n) = ((real_of_rat x) powi n)"
+proof -  show ?thesis by simp qed
+
+lemma helper_1:
+  fixes x y :: "rat"
+  fixes n :: "nat"
+  assumes "x>0" 
+  "n \<ge> 1"
+shows "(root n (real_of_rat(x^n - 1))) = ( (real_of_rat x) * (root n  (real_of_rat(1 - 1 / (x^n)))))"
+proof - 
+  have "(real_of_rat((x^n) - 1)) = real_of_rat(x^n) *  (real_of_rat(1 - 1 / (x^n)))" 
+    by (smt (verit, del_insts) assms(1) diff_divide_distrib divide_less_cancel divide_self_if nonzero_mult_div_cancel_left nonzero_of_rat_divide zero_eq_of_rat_iff zero_less_power)
+  then have "(root n (real_of_rat(x^n - 1))) = (root n ( real_of_rat(x^n) *  (real_of_rat(1 - 1 / (x^n)))))" by auto
+  have "(root n  (real_of_rat (x*y))) = (root n (real_of_rat x)) * (root n (real_of_rat y))"
+    by (simp add: of_rat_mult real_root_mult)
+  define xn::rat where xn_def: "xn = (x^n)"
+  define x1::real where x1_def: "x1 = real_of_rat x"
+  have "root n (real_of_rat (x ^ n)) = real_of_rat x" using root_sgn_power[of n x1] assms(2)
+    by (simp add: assms(1) of_rat_power real_root_pow_pos real_root_power)
+  (*above statement took sledgehammer over 30 seconds to prove *)
+   then show ?thesis
+     by (simp add: \<open>real_of_rat (x ^ n - 1) = real_of_rat (x ^ n) * real_of_rat (1 - 1 / x ^ n)\<close> real_root_mult)
+ qed
+
+
+lemma helper_3:
+  fixes x::"real"
+  fixes n::"nat"
+  assumes "n\<ge>1"
+ assumes "x\<ge>0" 
+  shows "n\<ge>1 \<Longrightarrow> root n (x powi n) = x "
+proof - 
+  show ?thesis using real_root_power_cancel
+    using assms(1) assms(2) by auto qed
+
+
+
+(*
+lemma sl: 
+  fixes f::"real \<Rightarrow> real"
+  fixes g::"real \<Rightarrow> real"
+  assumes "f \<ge> g"
+  assumes "Lim at_top g = 1"
+
+shows "f \<ge> 1" 
+*)
+
+lemma sLim_helper: 
+  fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  fixes n::"nat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+  
+shows  "x>1 \<Longrightarrow> n>0 \<Longrightarrow> (f x) / (real_of_rat x) \<ge>  root n ( (1 - (1/((real_of_rat x)^n))))
+\<Longrightarrow> (f x) \<ge> real_of_rat x" using bigLim
+proof -
+  
+  show ?thesis sorry qed
+
+lemma helperlimextra:
+  fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+  "x>1"
+
+shows "\<forall>n.  (f x) / (real_of_rat x) \<ge>  root n ( (1 - (1/((real_of_rat x)^n))))"
+proof - 
+    have sploinky: "\<And>x. 1 < x \<Longrightarrow>(real_of_rat  x) \<le> (f x)"
+  proof -
+    fix x::"rat"
+    fix n::"nat"
+    assume x_gt_1: "x>1"
+(*finally fucking got this at least. now try and do rooting. *)
+    show "(real_of_rat  x) \<le> (f x)" proof -
+      have h_a:"(f x) powi n > (real_of_rat ((x powi n) - 1))"
+      proof -
+        have h0: "n>0 \<or> n=0" by auto
+        have h1: "n>0 \<Longrightarrow> (f x) powi n > (real_of_rat ((x powi n) - 1))" using floor_pzero_global[of f x n]
+ x_gt_1
+          by (simp add: assms(1) assms(2) assms(3)) 
+        have h2: "n=0 \<Longrightarrow> (f x) powi n > (real_of_rat ((x powi n) - 1))" 
+        proof -
+          assume n_eq_0: "n=0"
+          have g1:"(f x) ^ n = 1" using n_eq_0 by auto
+          then have g2:"(real_of_rat ((x powi n) - 1)) = 0" using n_eq_0 by auto
+
+          then show ?thesis using g1 g2 by simp qed
+        
+        show ?thesis using h0 h1 h2 by auto qed
+
+(*note that for some reason it only works for \<ge>. SO IT'S WEAKER HERE.*)
+      have " n = 0 \<Longrightarrow> (f x) powi  n \<ge> (real_of_rat x powi n) " by simp
+      have " n \<ge> 1 \<Longrightarrow> (f x) powi n \<ge> (real_of_rat x powi n)" 
+       sorry (*
+        assume n_gte_1: "n\<ge>1"
+      have "(root n ((f x) powi n)) \<ge> root n (real_of_rat ((x powi n) - 1))" using h_a 
+        by (metis less_eq_real_def not_gr_zero real_root_le_iff root_0)
+      define sploinkyfx::"real" where sfx_def: "sploinkyfx = (f x)" 
+      then have "(f x) \<ge>  root n (real_of_rat ((x ^ n) - 1))" using helper_3[of n sploinkyfx] sfx_def krat2_global
+        by (smt (verit, ccfv_threshold) \<open>root n (real_of_rat (x powi int n - 1)) \<le> root n (f x powi int n)\<close> a_prop assms(1) assms(2) claim1 n_gte_1 one_less_of_rat_iff power_int_of_nat x_gt_1 zero_less_of_rat_iff)
+     then have "(f x) \<ge>  root n (real_of_rat ((x powi n) - 1))"  using helper_3[of n sploinkyfx] sfx_def krat2_global by simp
+
+      have "(root n (real_of_rat(x^n - 1))) = ( (real_of_rat x) * (root n  (real_of_rat(1 - 1 / (x^n)))))" 
+        using helper_1[of x n] n_gte_1 x_gt_1  by linarith 
+      then have before_lims: "root n (real_of_rat ((x powi n) - 1)) = (real_of_rat x) * root n (real_of_rat (1 - (1/(x^n))))"
+        using helper_2  by simp 
+      then have before_lims2: "(f x) / (real_of_rat x) \<ge>  root n (real_of_rat (1 - (1/(x^n))))"
+        by (smt (verit) \<open>root n (real_of_rat (x ^ n - 1)) = real_of_rat x * root n (real_of_rat (1 - 1 / x ^ n))\<close> \<open>root n (real_of_rat (x ^ n - 1)) \<le> f x\<close> divide_le_cancel nonzero_mult_div_cancel_left one_less_of_rat_iff x_gt_1) 
+      then have before_lims3:  "(f x) / (real_of_rat x) \<ge>  root n ( (1 - (1/((real_of_rat x)^n))))"  by (simp add: of_rat_diff of_rat_divide of_rat_power)sorry
+   *)  show ?thesis sorry qed qed show ?thesis  sorry qed
+lemma helperLimLHSRHS:
+  fixes f g::"('a::order) \<Rightarrow> real"
+  assumes "filterlim f (nhds a) at_top"
+  assumes "filterlim g (nhds b) at_top"
+  
+shows "\<forall>n. (f n) \<ge> (g n) \<longrightarrow> a  \<ge> b" 
+proof -
+
+  show ?thesis 
+    sorry qed
+
+lemma helperLimsLHSRHS2:
+  fixes c::real
+(*  assumes "filterlim ((f x) / (real_of_rat x)) (nhds ((f x) / (real_of_rat x))) at_top"
+*)
+shows "0=0"
+proof -
+  have "\<exists>c::real. ((f x) / (real_of_rat x)) = c" sorry
+
+  show ?thesis sorry qed
+
+lemma sLim: 
+  fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a" 
+
+shows  "\<And>x. 1 < x \<Longrightarrow>(real_of_rat  x) \<le> (f x)"
+proof -
+  obtain a::"rat" where a_prop: "a > 1 \<and> f a = (real_of_rat) a" using assms(3) by auto
+    fix x::"rat"
+    assume x_gt_1: "x>1"
+    then show "(real_of_rat  x) \<le> (f x)"
+    proof -
+      have h_a:" \<And>n. 0 <  n \<Longrightarrow> real_of_rat (x powi int n - 1) < f x powi int n" 
+      proof -
+        fix n::"nat"
+        assume n_gt_0: "n>0"
+       
+     
+
+        have h0: "n>0 \<or> n=0" by auto
+        have h1: "n>0 \<Longrightarrow> (f x) powi n > (real_of_rat ((x powi n) - 1))"
+          using assms floor_pzero_global[of f x n] x_gt_1 by simp
+        have h2: "n=0 \<Longrightarrow> (f x) powi n > (real_of_rat ((x powi n) - 1))" 
+        proof -
+          assume n_eq_0: "n=0"
+          have g1:"(f x) ^ n = 1" using n_eq_0 by auto
+          then have g2:"(real_of_rat ((x powi n) - 1)) = 0" using n_eq_0 by auto
+
+          then show ?thesis using g1 g2 by simp qed 
+        
+        show "real_of_rat (x powi int n - 1) < f x powi int n" using h0 h1 h2 by blast qed
+
+(*note that for some reason it only works for \<ge>. SO IT'S WEAKER HERE.*)
+      have  "\<And>n. n\<ge>0 \<Longrightarrow> (real_of_rat  x) \<le> (f x)"
+      proof -
+        fix n::"nat"
+      have h0: " n = 0 \<Longrightarrow> (f x) powi  n \<ge> (real_of_rat x powi n) " by simp
+      have h1:" n \<ge> 1 \<Longrightarrow> (f x) powi n \<ge> (real_of_rat x powi n)" 
+      proof - 
+        assume n_gte_1: "n\<ge>1"
+      have "(root n ((f x) powi n)) \<ge> root n (real_of_rat ((x powi n) - 1))" using h_a 
+        by (metis less_eq_real_def not_gr_zero real_root_le_iff root_0)
+      define sploinkyfx::"real" where sfx_def: "sploinkyfx = (f x)" 
+      then have "(f x) \<ge>  root n (real_of_rat ((x ^ n) - 1))" using helper_3[of n sploinkyfx] sfx_def krat2_global
+        by (smt (verit, ccfv_threshold) \<open>root n (real_of_rat (x powi int n - 1)) \<le> root n (f x powi int n)\<close> a_prop assms(1) assms(2) claim1_global n_gte_1 one_less_of_rat_iff power_int_of_nat x_gt_1 zero_less_of_rat_iff)
+     then have "(f x) \<ge>  root n (real_of_rat ((x powi n) - 1))"  using helper_3[of n sploinkyfx] sfx_def krat2_global by simp
+
+      have "(root n (real_of_rat(x^n - 1))) = ( (real_of_rat x) * (root n  (real_of_rat(1 - 1 / (x^n)))))" 
+        using helper_1[of x n] n_gte_1 x_gt_1  by linarith 
+      then have before_lims: "root n (real_of_rat ((x powi n) - 1)) = (real_of_rat x) * root n (real_of_rat (1 - (1/(x^n))))"
+        using helper_2  by simp 
+      then have before_lims2: "(f x) / (real_of_rat x) \<ge>  root n (real_of_rat (1 - (1/(x^n))))"
+        by (smt (verit) \<open>root n (real_of_rat (x ^ n - 1)) = real_of_rat x * root n (real_of_rat (1 - 1 / x ^ n))\<close> \<open>root n (real_of_rat (x ^ n - 1)) \<le> f x\<close> divide_le_cancel nonzero_mult_div_cancel_left one_less_of_rat_iff x_gt_1) 
+      then have before_lims3:  "(f x) / (real_of_rat x) \<ge>  root n ( (1 - (1/((real_of_rat x)^n))))"  by (simp add: of_rat_diff of_rat_divide of_rat_power)
+      (* let ?rhsf =  "\<lambda>x::rat. root n ( (1 - (1/((real_of_rat x)^n)))))" *)
+     (* then have "... \<ge> filterlim ?rhsf (nhds 1) at_top" sorry *)
+      then show ?thesis sorry qed
+    show "real_of_rat x \<le> f x" proof -
+      show ?thesis sorry qed qed
+  show ?thesis sorry qed qed
+            
+    
+
+
+lemma f_is_identity:
+  fixes f:: "rat \<Rightarrow> real"
+  fixes x y a :: "rat"
+  assumes 
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> (f x) *  (f y) \<ge> f (x * y)"
+  "\<And>x y::rat. x > 0 \<and> y > 0 \<Longrightarrow> f (x + y) \<ge> f x + f y"
+  "\<exists>a::rat. a > 1 \<and> f a = (real_of_rat) a"  
+shows "\<And>x::rat. x > 0 \<Longrightarrow> f x = (real_of_rat) x"
+proof -
+  obtain a::"rat" where a_prop: "a > 1 \<and> f a = (real_of_rat) a" using assms(3) by auto
+ have claim1: " \<And>n. 0 < n \<Longrightarrow> real_of_int n \<le> f (rat_of_int n)"
+  proof -
+      fix n::"int"
+      assume n_gt_0: "0 < n"
+      show " f (rat_of_int n) \<ge> real_of_int n" proof - 
+            
+        have subthing: "\<And>x::rat. x > 0 \<Longrightarrow> f((rat_of_int n) * x) \<ge> (real_of_int n)  * (f(x))"
+        proof -
+          fix x::"rat"
+          assume x_gt_0: "x>0"
+          show  "f((rat_of_int n) * x) \<ge> (real_of_int n)  * (f(x))"  using n_gt_0 x_gt_0
+          proof (induct n arbitrary:x)
+            case base
+            then show ?case by auto
+          next
+            case (step i)
+            have h0: "f (rat_of_int (i + 1) * x) = f (((rat_of_int i)*x) + x)"
+              by (simp add: ring_class.ring_distribs(2))
+              
+            have h1: "(rat_of_int i) * x > 0" using step.hyps step.prems by auto
+            then have h2: "(f ( (rat_of_int i) * x)) + (f x)  \<le> f (((rat_of_int i) * x) + x)"
+            using assms(2)[of "(rat_of_int i) * x" x] step by auto 
+            then have h3: " real_of_int (i + 1) * f x  = ((real_of_int i) * (f x)) +  f x"
+            by (simp add: distrib_left mult.commute) 
+          then have  "(real_of_int i) * (f x) \<le> f((rat_of_int i)*x) " using step.hyps(2)[of x] step.prems(1) h1 h2 h3
+            by simp
+          then have h5: "((real_of_int i) * (f x)) + (f x) \<le>  f((rat_of_int i)*x) + (f x)" by auto
+            then show ?case unfolding h3 h0  using h1 h2 h3 h5 by auto
+          qed
+        qed
+          
+
+
+
+   
+      then have " f (a * 1) = real_of_rat a" using a_prop  assms(1)[of a 1] using subthing by auto
+      then have "real_of_rat a * (f 1) \<ge> real_of_rat a" using a_prop assms(1)[of a 1] by simp
+      then have f1_case:  "f 1 \<ge> 1" using a_prop mult_cancel_left1 by auto 
+      then show ?thesis  using subthing[of 1]
+      by (smt (verit) less_numeral_extra(1) mult_cancel_left1 mult_le_cancel_left1 n_gt_0 of_int_nonneg)
+      qed
+      qed
+
+     (* have f_strict: "\<forall>i j::rat. i>0 \<and> i>j \<longrightarrow> (f i) > (f j)" *)
+ have f_strict1: " \<And>i j. 0 < i \<Longrightarrow> 0 < j \<Longrightarrow> j < i \<Longrightarrow> f j < f i"
+ proof -
+   fix i j::"rat"
+
+   assume i_gt_0: "i>0"
+   assume i_gt_j: "i>j"
+   assume j_gt_0: "j>0"
+
+ 
+  have krat2: " \<And>k. 0 < k \<Longrightarrow> 0 < f k" proof -
+  fix k::"rat"
+  assume k_gt_0: "k>0"
+
+  obtain p2 q2::int where kp2q2: "k = Fract p2 q2"
+        proof -
+          assume a1: "\<And>p2 q2. k = Fract p2 q2 \<Longrightarrow> thesis"
+          obtain ii :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iia :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iib :: "(rat \<Rightarrow> bool) \<Rightarrow> int" and iic :: "(rat \<Rightarrow> bool) \<Rightarrow> int" where
+            "\<forall>p r. p r \<or> \<not> p (Fract (ii p) (iia p)) \<and> 0 < iia p"
+            by (metis Rat_induct_pos)
+          then show ?thesis
+            using a1 by auto
+        qed 
+
+
+   have gtlt0:  "(p2 > 0 \<and> q2 > 0) \<or> ( p2 < 0 \<and> q2 < 0)" using kp2q2 k_gt_0
+     by (simp add: positive_rational_signs)
+
+      have fkp2q2: "(p2>0 \<and> q2>0) \<Longrightarrow> ( (f k) > 0)"
+      proof -
+      
+        assume p2q2_gt_0: "(p2>0 \<and> q2>0)"
+        show ?thesis using ftest[of f k p2 q2]
+          by (simp add: assms(1) assms(2) assms(3) claim1 kp2q2 p2q2_gt_0) qed
+
+      have fkp3q3: "(p2<0 \<and> q2<0) \<Longrightarrow> ( (f k) > 0)"proof - 
+        assume p2q2_lt_0: "(p2<0 \<and> q2<0)"
+        then have "(-p2)>0 \<and> (-q2)>0" by simp 
+        define p2i q2i::int where "p2i = (-p2)" and "q2i = (-q2)"
+        have "Fract p2i q2i = Fract p2 q2" by (simp add: p2i_def q2i_def) 
+        then have "k = (Fract p2i q2i)" by (simp add: kp2q2) 
+        then have "p2i > 0 \<and> q2i > 0"  using \<open>0 < - p2 \<and> 0 < - q2\<close> p2i_def q2i_def by auto 
+        then have "(f k) > 0" using ftest[of f k p2i q2i] assms(1) assms(2)
+            assms(3) claim1 kp2q2 p2q2_lt_0 \<open>k = Fract p2i q2i\<close> by blast
+        then show ?thesis by auto qed 
+   
+   
+       show "0 < (f k)" using fkp3q3 fkp2q2
+         using gtlt0 by blast 
+     qed
+
+     have krat: "\<forall>k::rat. 0 < k \<longrightarrow> 0 < f k" proof clarsimp show " \<And>k. 0 < k \<Longrightarrow> 0 < f k " using krat2 by simp qed
+
+     define r::rat where "r = i - j"
+     have r_gt_0: "r > 0" using i_gt_j r_def by simp
+     have fi_gt_0: "(f i) > 0" using krat2[of i] i_gt_0 by simp
+     have fr_gt_0: "(f r) > 0" using krat2[of r] r_gt_0 by simp
+          have "f (j + r) \<ge> f (j) + f (r)" using assms(2)[of j r] i_gt_0 j_gt_0 r_def r_gt_0 by simp
+          have "f (j) + f (r) > min (f j) (f r)" using krat2[of i] krat2[of j] i_gt_0 j_gt_0 by auto
+          have "(f i) = (f (j+r))" using r_def by simp 
+          then have "(f i) \<ge> (f j) + (f r)" using assms(2)[of j r]  by (simp add: j_gt_0 r_gt_0) 
+          then have "(f j) + (f r) > (f j)"  using fr_gt_0 by linarith 
+          then have tesis:"(f i) > (f j)"
+            using \<open>f j + f r \<le> f i\<close> by linarith 
+          show "(f i) > (f j)" using tesis by simp qed
+
+
+
+
+       
+     
+      have mult_gen: "\<And>x n. 0 < x \<Longrightarrow> 0 < n \<Longrightarrow> f (x ^ n) \<le> f x ^ n" using mgg
+          using a_prop assms(1) assms(2) claim1 krat2_global by auto
+
+(*        have "\<forall>n. 0 < n \<longrightarrow> (\<exists>a::rat. a > 1 \<longrightarrow>  f a = (real_of_rat) a \<longrightarrow>  f (a ^ n) \<le> (f a) ^ n)"
+        proof clarsimp *)
+
+ have fan: "\<And>n. 0 < n \<Longrightarrow> \<exists>a. 1 < a \<and> f a = real_of_rat a \<Longrightarrow> f (a ^ n) \<le> real_of_rat a ^ n"
+        proof -
+          fix n::"nat"
+          assume n_gt_0: "n>0"
+          show " \<exists>a. 1 < a \<and> f a = real_of_rat a \<Longrightarrow> f (a ^ n) \<le> real_of_rat a ^ n"
+          proof -
+            assume " \<exists>a. 1 < a \<and> f a = real_of_rat a"
+            show " f (a ^ n) \<le> real_of_rat a ^ n" 
+            proof -
+              have "n>0" using n_gt_0 by auto
+              then have nz: " n>0 \<Longrightarrow>  f (a ^ n) \<le> real_of_rat a ^ n"
+                proof (induct n)
+                  case 0
+                  then show ?case by simp  
+                next
+                  case (Suc n)
+                  have "(a ^ (Suc n)) = (a ^ n) * a" by simp
+                  then have "f(a ^ (Suc n)) = f ((a ^ n) * a)" by presburger
+                  then have "f (a ^( Suc n)) \<le> (f a) * (f (a^n))" using assms(1)
+                    by (metis a_prop div_by_0 divide_less_eq_1 mult.commute order.strict_trans zero_less_power)
+                  
+
+                  then show ?case using a_prop
+                    by (metis dual_order.strict_trans2 linordered_nonzero_semiring_class.zero_le_one mult_gen zero_less_Suc)
+                qed 
+              show ?thesis using nz n_gt_0 by auto qed qed qed
+ have fan2: "\<And>n. 0 < n \<Longrightarrow> f (a ^ n) \<le> real_of_rat (a ^ n)" using fan assms(3)
+        by (simp add: of_rat_power)   
+ have fan3:  "\<And>n. 0 < n \<Longrightarrow>   \<lfloor>a ^ n\<rfloor>  \<le>  f (a ^ n)"
+  proof - 
+  fix n::"nat"
+  assume n_gt_0: "n>0"
+   
+  have "(a^n) > 1" using a_prop n_gt_0 by simp
+  have h1: "\<lfloor>(a^n)\<rfloor> \<le> (f(rat_of_int\<lfloor>a^n\<rfloor>))" using claim1
+    using Fract_of_int_eq One_rat_def \<open>1 < a ^ n\<close> le_floor_iff nless_le by auto
+  have h2: " (f(rat_of_int\<lfloor>a^n\<rfloor>)) \<le>  (f(a^n)) "
+    by (smt (verit, del_insts) \<open>1 < a ^ n\<close> antisym_conv2 f_strict1 floor_less_one of_int_0_less_iff of_int_floor_le order_less_trans)
+  then show " \<lfloor>a ^ n\<rfloor>  \<le>  f (a ^ n)" using h1 h2 by simp  qed
+
+
+(*currently, cannot prove h2 w/o (f 0) 
+maybe prove by just doing floor(xpowin) \<le> (f (xpowin))? 
+maybe need to redo strictly_increasing proof such that it accepts 
+ *)
+
+
+
+ have floor_p0:"\<And>x n. 1 < x \<Longrightarrow> 0 < n \<Longrightarrow> (real_of_rat( (x^n) - 1)) < f x ^ n" 
+ proof - 
+   fix x::"rat"
+   assume x_gt_1: "x>1"
+   fix n::"nat"
+   assume n_gt_0: "n>0"
+   have "(x^n) > 1" using x_gt_1 n_gt_0 by simp
+   have h1: "\<lfloor>(x^n)\<rfloor> \<le> (f(rat_of_int\<lfloor>x^n\<rfloor>))" using claim1
+     using Fract_of_int_eq One_rat_def \<open>1 < x ^ n\<close> le_floor_iff nless_le by auto
+   have h2: " (f(rat_of_int\<lfloor>x^n\<rfloor>)) \<le>  (f(x^n)) "
+     by (smt (verit, del_insts) \<open>1 < x ^ n\<close> antisym_conv2 f_strict1 floor_less_one of_int_0_less_iff of_int_floor_le order_less_trans)
+   have h3: "(f (x^n)) \<le>  ((f x)^n) " using x_gt_1 n_gt_0 mult_gen[of x n] by auto
+   have "(rat_of_int \<lfloor>x ^ n\<rfloor> ) > (x^n) - 1"
+     by (simp add: floor_less_cancel) 
+   show " (real_of_rat( (x^n) - 1)) < f x ^ n"  using h1 h2 h3
+     by (smt (verit, del_insts) \<open>x ^ n - 1 < rat_of_int \<lfloor>x ^ n\<rfloor>\<close> of_rat_less of_rat_of_int_eq)
+ qed
+
+
+  
+  have sploinky: "\<And>x. 1 < x \<Longrightarrow>(real_of_rat  x) \<le> (f x)"
+  proof -
+    fix x::"rat"
+    fix n::"nat"
+    assume x_gt_1: "x>1"
+(*finally fucking got this at least. now try and do rooting. *)
+    show "(real_of_rat  x) \<le> (f x)" proof -
+      have h_a:"(f x) powi n > (real_of_rat ((x powi n) - 1))"
+      proof -
+        have h0: "n>0 \<or> n=0" by auto
+        have h1: "n>0 \<Longrightarrow> (f x) powi n > (real_of_rat ((x powi n) - 1))" using floor_p0[of x n]
+ x_gt_1 by simp
+        have h2: "n=0 \<Longrightarrow> (f x) powi n > (real_of_rat ((x powi n) - 1))" 
+        proof -
+          assume n_eq_0: "n=0"
+          have g1:"(f x) ^ n = 1" using n_eq_0 by auto
+          then have g2:"(real_of_rat ((x powi n) - 1)) = 0" using n_eq_0 by auto
+
+          then show ?thesis using g1 g2 by simp qed
+        
+        show ?thesis using h0 h1 h2 by auto qed
+
+(*note that for some reason it only works for \<ge>. SO IT'S WEAKER HERE.*)
+      have " n = 0 \<Longrightarrow> (f x) powi  n \<ge> (real_of_rat x powi n) " by simp
+      have " n \<ge> 1 \<Longrightarrow> (f x) powi n \<ge> (real_of_rat x powi n)" 
+      proof - 
+        assume n_gte_1: "n\<ge>1"
+      have "(root n ((f x) powi n)) \<ge> root n (real_of_rat ((x powi n) - 1))" using h_a 
+        by (metis less_eq_real_def not_gr_zero real_root_le_iff root_0)
+      define sploinkyfx::"real" where sfx_def: "sploinkyfx = (f x)" 
+      then have "(f x) \<ge>  root n (real_of_rat ((x ^ n) - 1))" using helper_3[of n sploinkyfx] sfx_def krat2_global
+        by (smt (verit, ccfv_threshold) \<open>root n (real_of_rat (x powi int n - 1)) \<le> root n (f x powi int n)\<close> a_prop assms(1) assms(2) claim1 n_gte_1 one_less_of_rat_iff power_int_of_nat x_gt_1 zero_less_of_rat_iff)
+     then have "(f x) \<ge>  root n (real_of_rat ((x powi n) - 1))"  using helper_3[of n sploinkyfx] sfx_def krat2_global by simp
+
+      have "(root n (real_of_rat(x^n - 1))) = ( (real_of_rat x) * (root n  (real_of_rat(1 - 1 / (x^n)))))" 
+        using helper_1[of x n] n_gte_1 x_gt_1  by linarith 
+      then have before_lims: "root n (real_of_rat ((x powi n) - 1)) = (real_of_rat x) * root n (real_of_rat (1 - (1/(x^n))))"
+        using helper_2  by simp 
+      then have before_lims2: "(f x) / (real_of_rat x) \<ge>  root n (real_of_rat (1 - (1/(x^n))))"
+        by (smt (verit) \<open>root n (real_of_rat (x ^ n - 1)) = real_of_rat x * root n (real_of_rat (1 - 1 / x ^ n))\<close> \<open>root n (real_of_rat (x ^ n - 1)) \<le> f x\<close> divide_le_cancel nonzero_mult_div_cancel_left one_less_of_rat_iff x_gt_1) 
+      then have before_lims3:  "(f x) / (real_of_rat x) \<ge>  root n ( (1 - (1/((real_of_rat x)^n))))"
+        by (simp add: of_rat_diff of_rat_divide of_rat_power)
+
+    (* Want to take the limit of both sides wrt n.  LHS is constant wrt n. *)
+
+      obtain k:: "real" where k_prop: "(f x) / (real_of_rat x) = k"
+        by blast
+
+      have "k \<ge>  root n ( (1 - (1/((real_of_rat x)^n))))"
+        using before_lims3 k_prop by auto
+
+      have "filterlim (\<lambda>n. k) (nhds k) at_top"
+        by blast
+
+      then have "filterlim (\<lambda>n. (f x) / (real_of_rat x)) (nhds ((f x) / (real_of_rat x))) at_top"
+        using k_prop by auto
+
+      have "filterlim (\<lambda>n. root n ( (1 - (1/((real_of_rat x)^n))))) (nhds 1) at_top"
+        (* helper lemma *)
+        sorry
+
+    
+      
+    (*  let ?rhsf =  "\<lambda>x::rat. root n ( (1 - (1/((real_of_rat x)^n)))))"
+      then have "... \<ge> filterlim ?rhsf (nhds 1) at_top" *)
+
+(*
+lemma continuous_dist[continuous_intros]:
+  fixes f g :: "_ \<Rightarrow> 'a :: metric_space"
+  shows "continuous F f \<Longrightarrow> continuous F g \<Longrightarrow> continuous F (\<lambda>x. dist (f x) (g x))"
+  unfolding continuous_def by (rule tendsto_dist)
+try using that, prove continuous, then *)
+      then show ?thesis sorry qed 
+
+  
+  have sploinky: "\<And>x. 1 < x \<Longrightarrow>(real_of_rat  x) \<le> (f x)"
+  proof -
+    fix x::"rat"
+    fix n::"nat"
+    assume x_gt_1: "x>1"
+(*finally fucking got this at least. now try and do rooting. *)
+    show "(real_of_rat  x) \<le> (f x)" proof -
+      show ?thesis sorry
+    qed
+
+
+    then show ?thesis sorry qed qed
+
+ have fan4: "\<And>n. 0 < n \<Longrightarrow> \<exists>a. 1 < a \<and> f a = real_of_rat a \<Longrightarrow> f (a ^ n) \<ge> real_of_rat a ^ n"
+        proof -
+          fix n::"nat"
+          assume n_gt_0: "n>0"
+          show " \<exists>a. 1 < a \<and> f a = real_of_rat a \<Longrightarrow> f (a ^ n) \<ge>  real_of_rat a ^ n" 
+          proof -
+            assume " \<exists>a. 1 < a \<and> f a = real_of_rat a"
+            show " f (a ^ n) \<ge> real_of_rat a ^ n" 
+            proof -
+                  have "n\<ge>0" using n_gt_0 by simp
+                  then have "(a^n) \<ge> 1" using a_prop by simp 
+              have  "n>0" using n_gt_0 by auto
+              then have nz: " n>0 \<Longrightarrow>  f (a ^ n) \<ge> real_of_rat a ^ n" using sploinky
+                by (metis a_prop of_rat_power one_less_power)
+              (*  proof (induct n)
+                  case 0
+                  then show ?case by simp  
+                next
+                  case (Suc n)
+                  have "(a ^ (Suc n)) = (a ^ n) * a" by simp
+                  then have pbu: "f(a ^ (Suc n)) = f ((a ^ n) * a)" by presburger
+                  have "n\<ge>0" using n_gt_0 by simp
+                  then have "(a^n) \<ge> 1" using a_prop by simp 
+                  then have "f (a ^( Suc n)) \<ge>  (f a) * (f (a^n))" using sploinky pbu
+
+                  then show ?case using a_prop
+                    by (metis dual_order.strict_trans2 linordered_nonzero_semiring_class.zero_le_one mult_gen zero_less_Suc)
+                qed *)
+              show ?thesis using nz n_gt_0 by auto qed qed qed
+        have fan5: "\<And>n. 0 < n \<Longrightarrow> \<exists>a. 1 < a \<and> f a = real_of_rat a \<Longrightarrow> f (a ^ n) = real_of_rat a ^ n"
+          using fan fan3 fan4 by (meson nle_le) 
+
+
+
+  have sploinky2: "\<And>x. 1 < x \<Longrightarrow>(real_of_rat  x) \<ge> (f x)"
+  proof -
+    fix x::"rat"
+    fix n::"nat"
+    assume x_gt_1: "x>1"
+(*finally fucking got this at least. now try and do rooting. *)
+    show "(real_of_rat  x) \<ge> (f x)"
+    proof -
+(*sowwy would need to be proved with limits *)
+      have sowwy: "\<exists>m::nat. (f ((a^m) - x)) > 0 \<and> ((a^m) - x) > 1 " sorry
+      then obtain m::nat where m_prop: " (f ((a^m) - x)) > 0 \<and>  ((a^m) - x) > 1  " by auto
+      define ammx::rat where am_def: "ammx = (a^m) - x" 
+      have "ammx >0" using m_prop sowwy am_def by simp
+      have h1:" (f ((a^m))) \<ge> (f ((a^m) - x)) + (f x)" using assms(2)[of ammx x]
+        using \<open>0 < ammx\<close> am_def x_gt_1 by auto 
+      have h2:"(f ((a^m) - x)) + (f x) \<ge> real_of_rat ((a^m - x) + x)" using sploinky
+        by (metis add_mono m_prop of_rat_add x_gt_1)
+      have "(f (a^m)) = (real_of_rat(a^m))"
+        by (smt (verit) \<open>0 < ammx\<close> a_prop am_def diff_eq_eq fan2 pos_add_strict power_0 power_strict_increasing_iff sploinky x_gt_1)
+      then have "(f x) \<le> (real_of_rat ((a^m) - ((a^m)-x))) "
+        by (smt (verit, best) h1 m_prop of_rat_diff sploinky)
+      then have "(f x) \<le> real_of_rat x"
+        by simp
+      then show ?thesis by simp qed qed
+
+ (*Therefore, we have $f(x)=x$ for all rationals $x>1$. We see that $2=f(2)\ge 2f(1)$,
+ so $f(1)\le 1$, but we know $f(1)\ge 1$, so $f(1)=1$ as well.
+ Then, (i) gives $f(1/x)\ge 1/f(x)$. But we know $f(x)\le x$, so we get $f(1/x)\ge 1/x$.
+ We already know from before that $f(1/x)\le 1/x$, so we have $f(1/x)=1/x$ for all rationals $x>1$.
+ This shows that $f(x)=x$ for all positive rationals $x$, completing the solution. *)
+  have sploinky3:  "\<And>x. 1 < x \<Longrightarrow>(real_of_rat  x) = (f x)" using sploinky sploinky2 by fastforce 
+
+  have f1case: "(f 1) = 1"
+  proof -
+
+    have ftwotwo: "(f 2) = 2" using sploinky3[of 2] by simp
+    have "(f 2) \<ge> (f 1) + (f 1) " using assms(2)[of 1 1] by simp
+    then have "(f 2) \<ge> 2 * (f 1)" by simp
+    then have f1_lt: "(f 1) \<le> 1" using sublinear[of f 1 2] f_strict1 assms(1) ftwotwo by linarith
+      then have " f (a * 1) = real_of_rat a" using a_prop  assms(1)[of a 1] using sublinear by auto
+      then have "real_of_rat a * (f 1) \<ge> real_of_rat a" using a_prop assms(1)[of a 1] by simp
+      then have f1_gt:  "f 1 \<ge> 1" using a_prop mult_cancel_left1 by auto  
+    then show ?thesis using f1_lt f1_gt by auto qed
+
+  have caseInterval: "\<And>x. x < 1 \<Longrightarrow> 0 < x \<Longrightarrow> real_of_rat x \<le> f x" 
+  proof - 
+    have caseIntervalHelper: "\<And>x. x > 1 \<Longrightarrow> real_of_rat (1/x) \<le> f (1/x)" 
+      proof - 
+        fix x::rat
+        assume x_gt_1: "x>1"
+        have overx_gt_0: "(1/x) < 1" using  x_gt_1  by force
+        then have overx_gt_1: "(1/x) > 0" using x_gt_1 by force
+    define overx::rat where overx_def: "overx = (1/x)"
+    have "(f x) * (f (1/x)) \<ge> (f 1)" using assms(1)[of x overx] using overx_def overx_gt_1 by force 
+    then have "(f x) * (f overx) \<ge>  1" using claim1[of 1] assms(1) overx_def by simp
+    then have "(f x) * (f (1/x)) \<ge> 1"  using overx_def by auto 
+    then have "((f x) /(f x)) * (f (1/x)) \<ge> (1/ (real_of_rat x))"
+      by (metis comm_monoid_mult_class.mult_1 divide_self dual_order.irrefl mult.commute mult_imp_div_pos_le overx_gt_1 sploinky3 x_gt_1 zero_less_divide_1_iff zero_less_of_rat_iff)
+    then have "(f (1/x)) \<ge> real_of_rat (1/x)" using sploinky3[of x] using overx_gt_0 sploinky3
+      by (metis divide_eq_0_iff divide_eq_1_iff mult.commute mult.right_neutral of_rat_1 of_rat_divide order_refl x_gt_1)
+    then show  "real_of_rat (1/x) \<le> f (1/x) " by auto qed
+  fix x::"rat" 
+  assume x_gt_0: "x>0"
+  assume x_lt_1: "x<1"
+  define xover::"rat" where "xover = (1/x)"
+  then have "xover > 1" using x_gt_0 x_lt_1 by auto 
+
+  then show "real_of_rat x \<le> f x" using caseIntervalHelper[of xover]
+    by (simp add: xover_def)  qed
+
+  have caseInterval2:  "\<And>x. x < 1 \<Longrightarrow> 0 < x \<Longrightarrow> real_of_rat x \<ge> f x" 
+  proof -
+    have caseInterval2Helper: "\<And>x. x > 1 \<Longrightarrow> real_of_rat (1/x) \<ge> f (1/x)" 
+    proof - 
+      fix x::"rat"
+      assume x_gt_1: "x>1"
+      show "real_of_rat (1/x) \<ge> f (1/x)"
+        sorry qed
+    fix x::"rat"
+    assume x_gt_0: "x>0"
+    assume x_lt_1: "x<1"
+    
+    show  "real_of_rat x \<ge> f x" 
+      sorry qed 
+
+  fix x::"rat"
+  assume x_gt_0: "x>0"
+  then show " f x = real_of_rat x" using caseInterval sploinky3 
+  proof -
+    have "x \<ge> 1 \<or> x < 1" by auto
+    have h1:"(x \<ge> 1) \<Longrightarrow>  f x = real_of_rat x" using sploinky3[of x] f1case by fastforce
+    have h2:"(x<1) \<Longrightarrow> (f x) = real_of_rat x" using caseInterval[of x] x_gt_0  caseInterval2[of x] by auto
+    show ?thesis using h1 h2 by force qed
